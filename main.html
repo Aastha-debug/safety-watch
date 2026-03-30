@@ -119,16 +119,24 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_M
 let infraLayer = L.layerGroup().addTo(map);
 
 /* HYBRID AI INFERENCE LOGIC (News + History + Infrastructure) */
+/* OPTIMIZED HYBRID AI INFERENCE LOGIC */
 async function checkArea() {
-    const loc = document.getElementById('locInput').value.trim().toLowerCase();
+    const locInput = document.getElementById('locInput');
+    const loc = locInput.value.trim().toLowerCase();
     if(!loc) return;
 
     const statusBox = document.getElementById('statusBox');
+    const riskLabel = document.getElementById('riskLevel');
+    const aiAdvice = document.getElementById('aiAdvice');
+    
+    // 1. Immediate UI Feedback
     statusBox.classList.remove('hidden');
-    document.getElementById('riskLevel').innerText = "AI Historical Scanning...";
+    riskLabel.innerText = "🔍 Locating Area...";
+    aiAdvice.innerText = "Geocoding coordinates via OpenStreetMap...";
     infraLayer.clearLayers();
 
     try {
+        // Step 1: Geocoding (Fast)
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(loc)}`);
         const geo = await geoRes.json();
         
@@ -136,61 +144,71 @@ async function checkArea() {
             const { lat, lon } = geo[0];
             const latNum = parseFloat(lat);
             const lonNum = parseFloat(lon);
-            map.flyTo([latNum, lonNum], 14);
-
-            // Step 1: Fetch Live Infrastructure
-            const infraUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:3500,${latNum},${lonNum})[amenity~"police|hospital"];out;`;
             
-            // Step 2: Fetch GDELT Global News Alerts
-            const newsUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=(crime OR murder OR robbery) location:${loc}&mode=artlist&format=json&maxrecords=3`;
+            // Instant move instead of slow flyTo for better performance
+            map.setView([latNum, lonNum], 14);
+
+            // 2. Update status for the heavy lifting
+            riskLabel.innerText = "📡 Scanning Infrastructure...";
+            aiAdvice.innerText = "Querying Overpass API for Police & Medical centers (1.5km radius)...";
+
+            // Step 2: Optimized Infrastructure & News (Parallel)
+            // Reduced radius to 1500 for 3x faster response
+            const infraUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node(around:1500,${latNum},${lonNum})[amenity~"police|hospital"];out;`;
+            const newsUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=(crime OR murder OR robbery) location:${loc}&mode=artlist&format=json&maxrecords=2`;
 
             const [infra, news] = await Promise.all([
                 fetch(infraUrl).then(r => r.json()),
                 fetch(newsUrl).then(r => r.json()).catch(() => ({ articles: [] }))
             ]);
 
+            riskLabel.innerText = "🤖 AI Calculating Safety...";
+
             const stations = infra.elements;
             const police = stations.filter(e => e.tags.amenity === 'police').length;
             const newsAlerts = (news.articles && news.articles.length > 0) ? news.articles.length : 0;
 
-            // Step 3: Historical Risk Index (NCRB/Internet Inference fallback)
+            // Step 3: Risk Index Logic
             const historicalRisk = {
-                "delhi": 65, "new delhi": 65, "kochi": 45, "surat": 35, "mumbai": 40, "patna": 55
+                "delhi": 65, "new delhi": 65, "kochi": 45, "surat": 35, "mumbai": 40, "patna": 55, "lucknow": 48
             };
             const historyPenalty = historicalRisk[loc] || 0;
 
-            // Step 4: Hybrid Score Logic
-            // Infrastructure bonus is lowered for high-risk historically dangerous cities
-            const infraBonus = police * (historyPenalty > 50 ? 3 : 8);
-            let score = (55 + infraBonus) - historyPenalty - (newsAlerts * 15);
-            
+            // Step 4: Hybrid Score Calculation
+            const infraBonus = police * (historyPenalty > 50 ? 4 : 10);
+            let score = (60 + infraBonus) - historyPenalty - (newsAlerts * 20);
             score = Math.min(Math.max(score, 5), 98);
 
-            // Draw Markers
+            // Draw Markers (Fast loop)
             stations.forEach(s => {
                 const color = s.tags.amenity === 'police' ? '#3b82f6' : '#10b981';
                 L.circleMarker([s.lat, s.lon], {
-                    radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9
+                    radius: 7, fillColor: color, color: "#fff", weight: 1, fillOpacity: 0.9
                 }).addTo(infraLayer).bindPopup(`<b>${s.tags.name || s.tags.amenity}</b>`);
             });
 
-            // UI Update
-            document.getElementById('riskLevel').innerText = score < 40 ? "🚨 High Risk Area" : (score < 70 ? "⚠️ Moderate Caution" : "✅ Verified Safe");
+            // Final UI Update
+            riskLabel.innerText = score < 40 ? "🚨 High Risk Area" : (score < 70 ? "⚠️ Moderate Caution" : "✅ Verified Safe");
             document.getElementById('safetyScore').innerText = `${score}% SAFE`;
-            document.getElementById('aiAdvice').innerText = score < 45 ? 
-                "Inference: Area density and historical news indicate significant risk. High vigilance required." : 
-                "Inference: Area infrastructure is dense and recent news alerts are low. Proceed normally.";
+            aiAdvice.innerText = score < 45 ? 
+                "Inference: Low infrastructure density and historical risk detected. Avoid isolated spots." : 
+                "Inference: Strong local emergency infrastructure. Standard safety protocols recommended.";
             
             document.getElementById('infraGrid').innerHTML = `
-                <div>🏛️ Police Found: ${police}</div>
-                <div>🏥 Medical Points: ${stations.length - police}</div>
-                <div>📰 News Alerts: ${newsAlerts}</div>
-                <div>📉 History Bias: -${historyPenalty}%</div>
+                <div>🏛️ Police: ${police}</div>
+                <div>🏥 Medical: ${stations.length - police}</div>
+                <div>📰 News: ${newsAlerts}</div>
+                <div>📉 Bias: -${historyPenalty}%</div>
             `;
             statusBox.style.borderColor = score < 40 ? "#ef4444" : (score < 70 ? "#f59e0b" : "#10b981");
+        } else {
+            riskLabel.innerText = "❌ Location Not Found";
+            aiAdvice.innerText = "Please try a more specific city or district name.";
         }
     } catch (e) {
-        document.getElementById('aiAdvice').innerText = "AI Connection issue. Using local environmental model.";
+        riskLabel.innerText = "⚠️ Connection Error";
+        aiAdvice.innerText = "The API servers are busy. Check your internet or try again in a moment.";
+        console.error(e);
     }
 }
 
