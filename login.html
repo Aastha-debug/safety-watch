@@ -17,6 +17,15 @@
     <p id="msg" class="mt-3 text-sm text-center text-red-400"></p>
   </div>
 
+  // new changes made 
+  <div class="login-container">
+    <h2>Crime Data Portal Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="handleLogin()">Login</button>
+    <p id="error-message" style="color:red;"></p>
+</div>
+
 <script>
 // USE THE SAME CONFIG AS YOUR OTHER FILES
 const firebaseConfig = {
@@ -43,6 +52,30 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     msgEl.innerText = err.message;
   }
 });
+</script>
+
+<script>
+function handleLogin() {
+    // 1. Get the values from the input boxes
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    const errorDisplay = document.getElementById('error-message');
+
+    // 2. Simple Validation (You can change "admin" to whatever you like)
+    if (user === "admin" && pass === "12345") {
+        
+        // 3. THE CRITICAL PART: Save the login status in the browser
+        // This 'isLoggedIn' key is what index.html looks for.
+        localStorage.setItem("isLoggedIn", "true");
+
+        // 4. Send the user to the dashboard
+        window.location.href = "index.html";
+        
+    } else {
+        // Show an error if credentials are wrong
+        errorDisplay.innerText = "Invalid Username or Password!";
+    }
+}
 </script>
 </body>
 </html>
