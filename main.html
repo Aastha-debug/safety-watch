@@ -234,7 +234,7 @@ function logout() { auth.signOut().then(() => window.location.href = 'index.html
         const user = auth.currentUser;
 
         if (!user) {
-            alert("User not logged in.");
+            alert("User not logged in. Please login again.");
             return;
         }
 
@@ -252,27 +252,46 @@ function logout() { auth.signOut().then(() => window.location.href = 'index.html
             return;
         }
 
-        // 🔥 GET LIVE LOCATION
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
+        // ✅ FORMAT PHONE NUMBER (Indian default)
+        let phone = u.contacts[0].replace(/\D/g, ""); // remove spaces/symbols
+        if (phone.length === 10) {
+            phone = "+91" + phone;
+        }
 
-            const locationLink = `https://www.google.com/maps?q=${lat},${lon}`;
+        // ✅ GET LIVE LOCATION
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
 
-            const message = `🚨 SOS ALERT 🚨
+                const locationLink = `https://www.google.com/maps?q=${lat},${lon}`;
+
+                const message = `🚨 SOS ALERT 🚨
 I, ${u.name}, am in danger.
 My current location: ${locationLink}`;
 
-            // 🔥 OPEN SMS APP
-            window.location.href = `sms:${u.contacts[0]}?body=${encodeURIComponent(message)}`;
+                // ✅ SMS LINK
+                const smsLink = `sms:${phone}?body=${encodeURIComponent(message)}`;
 
-        }, () => {
-            alert("Unable to fetch location.");
-        });
+                // ✅ WHATSAPP FALLBACK
+                const whatsappLink = `https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(message)}`;
+
+                // 🔥 TRY SMS FIRST
+                window.location.href = smsLink;
+
+                // 🔁 FALLBACK TO WHATSAPP
+                setTimeout(() => {
+                    window.open(whatsappLink, "_blank");
+                }, 1500);
+            },
+            () => {
+                alert("Location permission denied. Cannot send SOS.");
+            }
+        );
 
     } catch (err) {
         console.error("SOS Error:", err);
-        alert("SOS failed.");
+        alert("SOS failed. Try again.");
     }
 }
 </script>
