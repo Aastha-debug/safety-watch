@@ -6,45 +6,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+    <script src="config.js"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
-  <div class="max-w-md w-full p-6 bg-gray-800 rounded-xl shadow-lg">
-    <h1 class="text-2xl font-bold mb-4 text-center text-blue-500">Welcome Back</h1>
-    <input id="email" type="email" placeholder="Email" class="w-full p-3 mb-2 rounded bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-    <input id="password" type="password" placeholder="Password" class="w-full p-3 mb-4 rounded bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-    <button id="loginBtn" class="w-full bg-green-600 hover:bg-green-700 p-3 rounded font-bold transition">Login to Dashboard</button>
-    <p class="mt-4 text-sm text-center text-gray-400">New user? <a href="register.html" class="text-blue-400 underline">Register here</a></p>
-    <p id="msg" class="mt-3 text-sm text-center text-red-400"></p>
+<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-md w-full p-8 bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl">
+    <h1 class="text-3xl font-black mb-2 text-center text-blue-500 uppercase italic tracking-tighter">Safety Watch AI</h1>
+    <p class="text-xs text-gray-500 text-center mb-8 uppercase tracking-widest font-bold">Secure Access Portal</p>
+    <input id="email" type="email" placeholder="Email" class="w-full p-4 mb-3 rounded-xl bg-gray-800 border border-transparent focus:border-blue-500 outline-none transition" />
+    <input id="password" type="password" placeholder="Password" class="w-full p-4 mb-6 rounded-xl bg-gray-800 border border-transparent focus:border-blue-500 outline-none transition" />
+    <button id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl font-black uppercase transition-all transform active:scale-95 shadow-lg shadow-blue-900/40">Enter Dashboard</button>
+    <p class="mt-6 text-sm text-center text-gray-500">New user? <a href="register.html" class="text-blue-400 underline">Create Account</a></p>
+    <p id="msg" class="mt-4 text-xs text-center text-red-400"></p>
   </div>
-
-
 <script>
-// USE THE SAME CONFIG AS YOUR OTHER FILES
-const firebaseConfig = {
-  apiKey: "AIzaSyBclgRtoVbNlH-PslRwmrA2nEv10XY2w2M",
-  authDomain: "hotspot-d2c4d.firebaseapp.com",
-  projectId: "hotspot-d2c4d",
-  storageBucket: "hotspot-d2c4d.firebasestorage.app",
-  messagingSenderId: "679545250194",
-  appId: "1:679545250194:web:ceb3181d1487668df1a14b",
-  measurementId: "G-LJX7RK5PPR"
-};
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-
-document.getElementById('loginBtn').addEventListener('click', async () => {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const msgEl = document.getElementById('msg');
-
-  try {
-    await auth.signInWithEmailAndPassword(email, password);
-    window.location.href = 'main.html';
-  } catch (err) {
-    msgEl.innerText = err.message;
-  }
-});
+document.getElementById('loginBtn').onclick = async () => {
+    try {
+        await auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value);
+        window.location.href = 'main.html';
+    } catch (e) { document.getElementById('msg').innerText = e.message; }
+};
 </script>
-
 </body>
 </html>
