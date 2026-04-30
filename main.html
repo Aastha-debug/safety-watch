@@ -95,6 +95,12 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+auth.onAuthStateChanged((user) => {
+    if (!user) {
+        window.location.href = "index.html"; // force login
+    }
+});
+
 // MAP: High-reliability Voyager tiles
 let map = L.map('map', { zoomControl: false }).setView([20.59, 78.96], 5);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
@@ -224,11 +230,34 @@ try {
 function logout() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
 async function triggerSOS() {
-    const user = auth.currentUser;
-    if (!user) return;
-    const snap = await db.collection('users').doc(user.uid).get();
-    const u = snap.data();
-    alert(`SOS PROTOCOL: Notifying ${u.contacts.join(', ')}`);
+    try {
+        const user = auth.currentUser;
+
+        if (!user) {
+            alert("User not logged in yet. Please wait and try again.");
+            return;
+        }
+
+        const snap = await db.collection('users').doc(user.uid).get();
+
+        if (!snap.exists) {
+            alert("User data not found.");
+            return;
+        }
+
+        const u = snap.data();
+
+        if (!u.contacts || u.contacts.length === 0 || !u.contacts[0]) {
+            alert("No emergency contacts saved.");
+            return;
+        }
+
+        alert(`🚨 SOS ALERT!\nNotifying: ${u.contacts.join(', ')}`);
+
+    } catch (err) {
+        console.error("SOS Error:", err);
+        alert("SOS failed. Try again.");
+    }
 }
 </script>
 </body>
